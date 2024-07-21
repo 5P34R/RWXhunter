@@ -23,9 +23,7 @@ int main() {
 	PBYTE							pTmpPntrVar = NULL;
 
 	HANDLE							pHandler = NULL;
-	MEMORY_BASIC_INFORMATION mbi;
-	CHAR* base = NULL;
-
+	
 
 
 	if (!(pNtQuerySystemInformation = (fnNtQuerySystemInformation)GetProcAddress(GetModuleHandle(L"ntdll"), "NtQuerySystemInformation"))) {
@@ -50,28 +48,35 @@ int main() {
 
 	while (pSystemProcInfo->NextEntryOffset) {
 
+		MEMORY_BASIC_INFORMATION mbi = { 0x0 };
+		LPVOID base = 0;
+
 		pSystemProcInfo = (PSYSTEM_PROCESS_INFORMATION)((ULONG_PTR)pSystemProcInfo + pSystemProcInfo->NextEntryOffset);
 
 
-		//printf("[+] PID => %ld\n", (DWORD)pSystemProcInfo->UniqueProcessId);
 		pHandler = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, (DWORD)pSystemProcInfo->UniqueProcessId);
 		if (pHandler == NULL) {
-			wprintf(L"[-] Failed to open handle at %s error code: %ld\n\n", pSystemProcInfo->ImageName.Buffer, GetLastError());
+			//
+			// 
+			// wprintf(L"[-] Failed to open handle at %s error code: %ld\n\n", pSystemProcInfo->ImageName.Buffer, GetLastError());
 			continue;
 		}
 		
-		//wprintf(L"[+] Image Name => %s\n", pSystemProcInfo->ImageName.Buffer);
+		printf("[+] PID => %ld\n", (DWORD)pSystemProcInfo->UniqueProcessId);
+		wprintf(L"[+] Image Name => %s\n", pSystemProcInfo->ImageName.Buffer);
 		
+
 		while (VirtualQueryEx(pHandler, base, &mbi, sizeof(mbi)) == sizeof(MEMORY_BASIC_INFORMATION)) {
 			//printf("[!] Protection %ld\n\n\n", mbi.AllocationProtect);
-			if (mbi.AllocationProtect == 32) {
-				printf("[+] Potential section with RWX permission: %ld", mbi.AllocationProtect);
+			base = (LPVOID)((DWORD_PTR)mbi.BaseAddress + mbi.RegionSize);
+			if (mbi.Protect == PAGE_EXECUTE_READWRITE && mbi.State == MEM_COMMIT && mbi.Type == MEM_PRIVATE) {
+				printf("[+] Potential section with RWX permission: 0x%lx 0x%p\n", mbi.Protect, base);
 			}
-			base += mbi.RegionSize;
 		}
+		printf("\n");
+		CloseHandle(pHandler);
 	}
 
-	CloseHandle(pHandler);
 	return 0;
 		
 }
