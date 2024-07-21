@@ -70,12 +70,12 @@ int main() {
 			//printf("[!] Protection %ld\n\n\n", mbi.AllocationProtect);
 			base = (LPVOID)((DWORD_PTR)mbi.BaseAddress + mbi.RegionSize);
 			if (mbi.Protect == PAGE_EXECUTE_READWRITE && mbi.State == MEM_COMMIT && mbi.Type == MEM_PRIVATE) {
-				printf("[+] Potential section with RWX permission: 0x%lx 0x%p\n", mbi.Protect, base);
+				printf("[+] Potential section with RWX permission: 0x%lx 0x%p %#7llu bytes\n", mbi.Protect, base, mbi.RegionSize);
 			}
 		}
 		printf("\n");
-		CloseHandle(pHandler);
 	}
+		CloseHandle(pHandler);
 
 	return 0;
 		
